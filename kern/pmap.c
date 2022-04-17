@@ -145,8 +145,6 @@ mem_init(void)
 {
 	uint32_t cr0;
 	size_t n;
-//	static int flag2=0;
-//	flag2+=1;
 
 	// Find out how much memory the machine has (npages & npages_basemem).
 	i386_detect_memory();
@@ -158,7 +156,6 @@ mem_init(void)
 	// create initial page directory.
 	kern_pgdir = (pde_t *) boot_alloc(PGSIZE);
 	memset(kern_pgdir, 0, PGSIZE);
-//	cprintf("kern_pgdir=%#x\n\n",kern_pgdir);
 
 	//////////////////////////////////////////////////////////////////////
 	// Recursively insert PD in itself as a page table, to form
@@ -178,7 +175,6 @@ mem_init(void)
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
 	n=npages*sizeof(struct PageInfo);
-//	cprintf("sizeof(struct PageInfo)=%d字节,sizeof(uint16_t)=%d字节\n",sizeof(struct PageInfo),sizeof(uint16_t));
         pages=(struct PageInfo*)boot_alloc(n);
 	memset(pages,0,n);       
 
