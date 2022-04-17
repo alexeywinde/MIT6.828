@@ -113,12 +113,10 @@ boot_alloc(uint32_t n)
 		 // uint32_t alloc_page_num=ROUNDUP(n,PGSIZE);
 //                static int flag1=0;
 //		cprintf("nextfree=%#x,POUNDUP(%d,%d)=%d\n",nextfree,n,PGSIZE,ROUNDUP(n,PGSIZE));
-		result=nextfree;
 	       	nextfree=nextfree+ROUNDUP(n,PGSIZE);
 //		cprintf("nextfree=%#x\n",nextfree);
-		if(nextfree>(char*)0xf0400000){//用完内存
+		if(nextfree>(char*)0xffffffff){//用完内存
 			panic("boot_alloc:We are out of memory?\n");
-			nextfree=result;
 			return NULL;
 		}
 		result=nextfree;
@@ -158,7 +156,7 @@ mem_init(void)
 	// create initial page directory.
 	kern_pgdir = (pde_t *) boot_alloc(PGSIZE);
 	memset(kern_pgdir, 0, PGSIZE);
-//	cprintf("kern_pgdir=%#x\n\n",kern_pgdir);
+	cprintf("kern_pgdir=%#x\n\n",kern_pgdir);
 
 	//////////////////////////////////////////////////////////////////////
 	// Recursively insert PD in itself as a page table, to form
@@ -322,22 +320,21 @@ page_init(void)
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
-*/	
-
-	pages[0].pp_ref=0;
-	pages[0].pp_link=NULL;
-	page_free_list=&pages[0];
+*/
  	size_t i;
-	//IOPHYSMEM/PGSIZE=160;
+	size_t m=IOPHYSMEM/PGSIZE;
+//	cprintf("IOPHYSMEM/PGSIZE=%d ",m);
+//	cprintf("npages_basemem=%d\n",npages_basemem);
+//	npages_base_mem==IOPHYSEM/PGSIZE==160;
 	for(i=1;i<npages_basemem;i++){
 		pages[i].pp_ref=0;
 		pages[i].pp_link=page_free_list;
 		page_free_list=&pages[i];
 	}
 	size_t n=PADDR(boot_alloc(0))/PGSIZE;
-	//n=348,npages=32768=2^15,npages_basemem=160,npages没有把I/O hole计算在内
-	//boot_alloc(0)=0xf015c000,PADDR(boot_alloc(0))=0x15c000
-	for(i=n;i<npages+96;i++){
+	cprintf("n=%d,PADDR(boot_alloc(0)=%#x\n",n,PADDR(boot_alloc(0)));
+//	cprintf("n=%d,noages=%d ",n,npages);
+	for(i=n;i<npages;i++){
 		 pages[i].pp_ref=0;
 		 pages[i].pp_link=page_free_list;
 	       	 page_free_list=&pages[i];
@@ -371,10 +368,10 @@ page_alloc(int alloc_flags)
 	page_free_list=page_free_list->pp_link;
 	pp_alloc->pp_link=NULL;  
 	if(alloc_flags&ALLOC_ZERO){
-		memset(page2kva(pp_alloc),'\0',PGSIZE);
+		memset(pp_alloc,'\0',PGSIZE);
 	}
 	//要返回物理页映射到内核的虚拟地址
-	return pp_alloc;
+	return (struct PageInfo*)page2kva(pp_alloc);
 }
 
 //
@@ -618,12 +615,18 @@ check_page_free_list(bool only_low_memory)
 
 	if (!page_free_list)
 		panic("'page_free_list' is a null pointer!");
+
+cprintf("pmap.c=%d\n",__LINE__);
+
 	if (only_low_memory) {
 		// Move pages with lower addresses first in the free
 		// list, since entry_pgdir does not map all pages.
 		struct PageInfo *pp1, *pp2;
 		struct PageInfo **tp[2] = { &pp1, &pp2 };
 		for (pp = page_free_list; pp; pp = pp->pp_link) {
+			 cprintf("pp=%#x ,",pp);
+			 cprintf("pp->pp_link=%#x\n",pp->pp_link);
+
 			int pagetype = PDX(page2pa(pp)) >= pdx_limit;
 			*tp[pagetype] = pp;
 			tp[pagetype] = &pp->pp_link;
@@ -631,27 +634,15 @@ check_page_free_list(bool only_low_memory)
 		*tp[1] = 0;
 		*tp[0] = pp2;
 		page_free_list = pp1;
-		struct PageInfo* pppp=(struct PageInfo*)0xf015c078;
-		cprintf("pppp=%#x,pppp->pp_link=%#x\n",pppp,pppp->pp_link);
 	}
 
 	// if there's a page that shouldn't be on the free list,
 	// try to make sure it eventually causes trouble.
-	for (pp = page_free_list; pp; pp = pp->pp_link){
-		if (PDX(page2pa(pp)) < pdx_limit){		
+	for (pp = page_free_list; pp; pp = pp->pp_link)
+		if (PDX(page2pa(pp)) < pdx_limit)
 			memset(page2kva(pp), 0x97, 128);
-		//	if(pp==(struct PageInfo*)0xf015c078){
-			//	cprintf("pp=%#x,",pp);
-			//	cprintf("page2kva(pp)=%#x, ",page2kva(pp));
-	                  //      cprintf("page2pa(pp)=%#x, ",page2pa(pp));
-			//	cprintf("pp->pp_link=%#x, ",pp->pp_link);			
-		        //	cprintf("卡了\n");
-		//	}
-
-		}
-	}
+	cprintf("pmap.c=%d\n",__LINE__);
 	first_free_page = (char *) boot_alloc(0);
-
 	for (pp = page_free_list; pp; pp = pp->pp_link) {
 		// check that we didn't corrupt the free list itself
 		assert(pp >= pages);

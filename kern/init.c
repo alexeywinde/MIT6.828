@@ -53,7 +53,6 @@ _panic(const char *file, int line, const char *fmt,...)
 	if (panicstr)
 		goto dead;
 	panicstr = fmt;
-
 	// Be extra sure that the machine is in as reasonable state
 	asm volatile("cli; cld");
 
