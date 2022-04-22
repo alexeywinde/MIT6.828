@@ -64,24 +64,24 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 
 	uint32_t ebp=read_ebp();
 	uint32_t *ebp_ptr=(uint32_t *)ebp;
-	uint32_t eip=*ebp_ptr+1;
-	while(1){
-	cprintf("  ebp  %08x  eip  %08x  args  %x  %x  %x  %x  %x\n",
-		   ebp,       eip,             ebp_ptr+2,ebp_ptr+3,ebp_ptr+4,ebp+5,ebp+6);
-//	struct Eipdebuginfo info;
-//        int ret = debuginfo_eip(eip, &info);
-//        cprintf("    %s: %d: %.*s+%d\n",
-//                info.eip_file, info.eip_line, info.eip_fn_namelen, info.eip_fn_name, eip - info.eip_fn_addr);
+	uint32_t eip=*(ebp_ptr+1);
+	while(ebp){
+	cprintf("  ebp %08x eip %08x args %08x %08x %08x %08x %08x\n",
+		   ebp,       eip,             *(ebp_ptr+2),*(ebp_ptr+3),*(ebp_ptr+4),*(ebp_ptr+5),*(ebp_ptr+6));
+	struct Eipdebuginfo info;
+        int ret = debuginfo_eip(eip, &info);
+        cprintf("    %s: %d: %.*s+%d\n",
+                info.eip_file, info.eip_line, info.eip_fn_namelen, info.eip_fn_name, eip - info.eip_fn_addr);
 
         // 判断是否到达call stack顶部
-//        if (ret) {
-//            break;
-//        }
+        if (ret) {
+            break;
+        }
 	
 	
 	ebp=*ebp_ptr;
 	ebp_ptr=(uint32_t *)ebp;
-	eip=*ebp_ptr+1;
+	eip=*(ebp_ptr+1);
 
 	}
 	return 0;
