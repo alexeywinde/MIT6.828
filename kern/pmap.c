@@ -333,7 +333,7 @@ page_init(void)
 	size_t n=PADDR(boot_alloc(0))/PGSIZE;
 	//n=348,npages=32768=2^15,npages_basemem=160,npages没有把I/O hole计算在内
 	//boot_alloc(0)=0xf015c000,PADDR(boot_alloc(0))=0x15c000
-	for(i=n;i<npages+96;i++){
+	for(i=n;i<npages;i++){
 		 pages[i].pp_ref=0;
 		 pages[i].pp_link=page_free_list;
 	       	 page_free_list=&pages[i];
