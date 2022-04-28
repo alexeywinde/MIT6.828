@@ -19,6 +19,7 @@ void _panic(const char*, int, const char*, ...) __attribute__((noreturn));
          panic("assertion failed: %s", #x); 
       }
   }while (0)
+就是 if(x==0) panic("...");
 
  */
 
