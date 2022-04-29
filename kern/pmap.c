@@ -165,10 +165,9 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-	n=npages*sizeof(struct PageInfo);
-        pages=(struct PageInfo*)boot_alloc(n);
-	memset(pages,0,n);       
-       cprintf("pages大小为：%d字节\n",n); 
+	size_t n1=npages*sizeof(struct PageInfo);
+        pages=(struct PageInfo*)boot_alloc(n1);
+	memset(pages,0,n1);       
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -196,24 +195,9 @@ mem_init(void)
 	// Your code goes here:
 	//
 	// pages是内核虚拟地址
-	cprintf("pages=%08x\n",pages);
-	n= ROUNDUP(n,PGSIZE);
-	size_t pages_map_num= ROUNDUP(n,PGSIZE)/PGSIZE;
-	cprintf("pages_map_num=%d\n",pages_map_num);
-//	此处pages大小为256K，占据64个物理页,1个页表足矣！
-/*	struct pageInfo *ptpp=page_alloc(1);
-	size_t i;
-	for(i=0;i<pages_map_num;i++){
-		kern_pgdir[PDX(UPAGES+i*PGSIZE)]=PADDR(ptpp)|PTE_U|PTE_P;
-		
-
-
-}
-	kern_pgdir[PDX(UPAGES)]=PADDR(pages)|PTE_U|PTE_P;
-	kern_pgdir[PDX(pages)]=PADDR(pages)|PTE_W|PTE_P;
-	*/
-	boot_map_region(kern_pgdir,UPAGES,n,PADDR(pages),PTE_U);
-	boot_map_region(kern_pgdir,(uintptr_t)pages,n,PADDR(pages),PTE_W);
+	n1= ROUNDUP(n1,PGSIZE);
+	boot_map_region(kern_pgdir,UPAGES,n1,PADDR(pages),PTE_U);
+	boot_map_region(kern_pgdir,(uintptr_t)pages,n1,PADDR(pages),PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -224,11 +208,9 @@ mem_init(void)
 	//     * [KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE) -- not backed; so if
 	//       the kernel overflows its stack, it will fault rather than
 	//       overwrite memory.  Known as a "guard page".
-	
-	//     无效内存：[MMIOLIM,KSTACKTOP-KSTACKSZIE)
-	
-	//     Permissions: kernel RW, user NONE
+	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+
         //bootstack在pmap.h中被声明为外部变量，定义在entry.S中,虚拟地址在KERNBASE上，
 	//1M内,bootstack+KSTKSIZE=bootstacktop
 	//
@@ -236,7 +218,6 @@ mem_init(void)
 	//static void 
 	//boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm) 
 	
-//	void *va=(void*)(KSTACKTOP-KSTKSIZE),*pa=(void*)PADDR(bootstack);
 	boot_map_region(kern_pgdir,(KSTACKTOP-KSTKSIZE),KSTKSIZE,PADDR(bootstack),PTE_W);
 	 
 	//////////////////////////////////////////////////////////////////////
@@ -249,18 +230,8 @@ mem_init(void)
 	// Your code goes here:
 
 	
-	//虚拟地址和物理地址做映射，用page_insert();
-	//int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
-//	size_t npages_pa=(0xffffffff-KERNBASE+1)/PGSIZE;
-//        size_t map_end=npages>npages_PA?npages:npages_PA;
-//	void *va_kernbase=(void*)KERNBASE;//不定义此行编译通不过;
 	
 	boot_map_region(kern_pgdir,KERNBASE,0xffffffff-KERNBASE+1,0x00000000,PTE_W);
-/*
-	for(n=0;n<npages;n++){//&(pages+n)=&pages[n]
-	     page_insert(kern_pgdir,&pages[n],(void*)KERNBASE+PGSIZE*n,PTE_P|PTE_W);
-	}
-*/
 
 
 	// Check that the initial page directory has been set up correctly.
@@ -767,11 +738,9 @@ check_kern_pgdir(void)
 
 	// check pages array
 	n = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
-	for (i = 0; i < n; i += PGSIZE){
-//		cprintf("i=%d,check_va2pa(pgdir, UPAGES + i)=%08x,PADDR(pages) + i=%08x\n",i,check_va2pa(pgdir, UPAGES + i),PADDR(pages) + i);
+	for (i = 0; i < n; i += PGSIZE)
 		assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
 
-}
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
@@ -792,7 +761,6 @@ check_kern_pgdir(void)
 		default:
 			if (i >= PDX(KERNBASE)) {
 				assert(pgdir[i] & PTE_P);
-//					cprintf("i=%d,PDX(KERNBASE)=%d,pgdir[i]&PTE_W=%d\n",i,PDX(KERNBASE),pgdir[i]&PTE_W);
 				assert(pgdir[i] & PTE_W);
 			} else
 				assert(pgdir[i] == 0);
@@ -818,7 +786,6 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));//p指向页表
 	if (!(p[PTX(va)] & PTE_P))//页表项不存在
 		return ~0;
-//	cprintf("页目录项虚拟地址=%08x,页表虚拟地址=%08x,页表项的高20位=%08x\n",pgdir,p,PTE_ADDR(p[PTX(va)])>>12);
 	return PTE_ADDR(p[PTX(va)]);//内存页的物理地址
 }
 
