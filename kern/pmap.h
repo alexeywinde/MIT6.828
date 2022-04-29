@@ -63,19 +63,20 @@ void	page_decref(struct PageInfo *pp);
 
 void	tlb_invalidate(pde_t *pgdir, void *va);
 
+
 int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
 void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
 
-static inline physaddr_t
-page2pa(struct PageInfo *pp)
-{
+static inline physaddr_t    //pages是管理物理页的结构体数组,但pages是虚拟地址
+page2pa(struct PageInfo *pp)//函数返回*pp管理的物理页对应的物理地址
+{                           //struct PageInfo是6字节,&pages[i]-pages=i
 	return (pp - pages) << PGSHIFT;
 }
 
 static inline struct PageInfo*
-pa2page(physaddr_t pa)
+pa2page(physaddr_t pa)  //物理地址pa对应的页号为i,函数返回 &pages[i]
 {
-	if (PGNUM(pa) >= npages)
+	if (PGNUM(pa) >= npages)//PGNUM(pa)返回物理地址pa对应的页号,即物理地址的高20位
 		panic("pa2page called with invalid pa");
 	return &pages[PGNUM(pa)];
 }
@@ -83,7 +84,7 @@ pa2page(physaddr_t pa)
 static inline void*
 page2kva(struct PageInfo *pp)
 {
-	return KADDR(page2pa(pp));
+	return KADDR(page2pa(pp));//函数返回*pp管理的物理页映射到内核的虚拟页的地址
 }
 
 pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create);
