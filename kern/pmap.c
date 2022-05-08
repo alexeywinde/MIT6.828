@@ -147,10 +147,9 @@ mem_init(void)
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
+	boot_alloc(PGSIZE);
 	kern_pgdir = (pde_t *) boot_alloc(PGSIZE);
-	cprintf("&kern_pgdir=%x,kern_pgdir=%x,",&kern_pgdir,kern_pgdir);
 	memset(kern_pgdir,0, PGSIZE);
-	cprintf("memset()后,kern_pgdir=%x\n",kern_pgdir);
 	//////////////////////////////////////////////////////////////////////
 	// Recursively insert PD in itself as a page table, to form
 	// a virtual page table at virtual address UVPT.
@@ -178,7 +177,6 @@ mem_init(void)
 	size_t n2=NENV * sizeof(struct Env);
 	envs=(struct Env*)boot_alloc(n2);
 	memset(envs,0,n2);
-
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -216,10 +214,9 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
-
 	n2=ROUNDUP(n2,PGSIZE);
 	boot_map_region(kern_pgdir,UENVS,n2,PADDR(envs),PTE_U);
-	boot_map_region(kern_pgdir,UENVS,n2,PADDR(envs),PTE_W);
+	boot_map_region(kern_pgdir,(uintptr_t)pages,n2,PADDR(envs),PTE_W);
 	
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -251,7 +248,7 @@ mem_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
 
-	boot_map_region(kern_pgdir,KERNBASE,0xffffffff-KERNBASE+1,0x00000000,PTE_W);
+	boot_map_region(kern_pgdir,KERNBASE,~0-KERNBASE+1,0x00000000,PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
