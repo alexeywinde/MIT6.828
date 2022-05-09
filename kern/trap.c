@@ -175,14 +175,15 @@ trap_dispatch(struct Trapframe *tf)
 	}
 	if(tf->tf_trapno==T_SYSCALL){
 		  uint32_t syscallno,a1,a2,a3,a4,a5;
-		  asm volatile("movl %%eax,%0\n"
+		  asm volatile(
+			     "\tmovl %%eax,%0\n"
 			     "\tmovl %%edx,%1\n"
 			     "\tmovl %%ecx,%2\n"
 			     "\tmovl %%ebx,%3\n"
 			     "\tmovl %%edi,%4\n"
 			     "\tmovl %%esi,%5\n"
 			   
-			     :syscallno,a1,a2,a3,a4,a5
+			     :"=r"(syscallno),"=r"(a1),"=r"(a2),"=r"(a3),"=r"(a4),"=r"(a5)
 			     :
 			     :"cc", "memory");	
 		syscall(syscallno,a1,a2,a3,a4,a5);

@@ -21,13 +21,14 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
-	void *va_start=ROUNDDOWN(s),va_end=ROUNDUP(s+len);
+	const void *va_start=(void*)s,*va_end=(void*)s+len;
+	va_start=ROUNDDOWN(s,PGSIZE),va_end=ROUNDUP(s+len,PGSIZE);
 	pte_t *pte_store;
 	for(;va_start<va_end;va_start+=PGSIZE){
-		if((curenv->env_pgdir[PDX(va_start)]&PTE_Ui)!=PTE_U) env_destroy(curenv->env_pgdir);
-		struct PageInfo *pp=page_lookup(curenv->env_pgdir,va_start,&pte_store);
-		if(!pp) env_destroy(curenv->env_pgdir);
-		if((*pte_store)&PTE_U!=PTE_U) env_destroy(curenv->env_pgdir);
+		if((curenv->env_pgdir[PDX(va_start)]&PTE_U)!=PTE_U) env_destroy(curenv);
+		struct PageInfo *pp=page_lookup(curenv->env_pgdir,(void*)va_start,&pte_store);
+		if(!pp) env_destroy(curenv);
+		if(((*pte_store)&PTE_U)!=PTE_U) env_destroy(curenv);
 	}
 //	int r;
 //	if(r=)
