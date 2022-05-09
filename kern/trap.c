@@ -68,7 +68,7 @@ trap_init(void)
 	void divide_entry();  SETGATE(idt[T_DIVIDE],1,GD_KT,divide_entry,0);
 	void debug_entry();   SETGATE(idt[T_DEBUG],1,GD_KT,debug_entry,0); 
 	void nmi_entry();     SETGATE(idt[T_BRKPT],0,GD_KT,nmi_entry,0); 
-	void brkpt_entry();   SETGATE(idt[T_BRKPT],1,GD_KT,brkpt_entry,0); 
+	void brkpt_entry();   SETGATE(idt[T_BRKPT],1,GD_KT,brkpt_entry,3); 
 	void oflow_entry();   SETGATE(idt[T_OFLOW],1,GD_KT,oflow_entry,0); 
 	void bound_entry();   SETGATE(idt[T_BOUND],1,GD_KT,bound_entry,0); 
 	void illop_entry();   SETGATE(idt[T_ILLOP],1,GD_KT,illop_entry,0); 
@@ -83,7 +83,7 @@ trap_init(void)
 	void align_entry();   SETGATE(idt[T_ALIGN],1,GD_KT,align_entry,0); 
 	void mchk_entry();    SETGATE(idt[T_MCHK],1,GD_KT,mchk_entry,0); 
 	void simderr_entry(); SETGATE(idt[T_SIMDERR],1,GD_KT,simderr_entry,0);
-	void syscall_entry(); SETGATE(idt[T_SYSCALL],0,GD_KT,syscall_entry,0); 
+	void syscall_entry(); SETGATE(idt[T_SYSCALL],0,GD_KT,syscall_entry,3); 
 
 
 	// Per-CPU setup 
@@ -164,12 +164,13 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	cprintf("中断号码：tf->tf_trapno=%d\n",tf->tf_trapno);
 	if((tf->tf_trapno==T_PGFLT))
 		page_fault_handler(tf);
 	if(tf->tf_trapno==T_BRKPT){
 	
-		breakpoint();
-		while(1)
+//		breakpoint();
+//		while(1)
 		monitor(tf);
 //		breakpoint();
 	}
