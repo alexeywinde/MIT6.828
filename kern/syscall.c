@@ -22,6 +22,17 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
+	uint32_t va_start=(uint32_t)s,va_end=(uint32_t)s+len;
+	va_start=ROUNDDOWN(va_start,PGSIZE),va_end=ROUNDUP(va_end,PGSIZE);
+	pte_t *pte_store;
+	for(;va_start<va_end;va_start+=PGSIZE){
+		if((curenv->env_pgdir[PDX(va_start)]&PTE_U)!=PTE_U) env_destroy(curenv);
+		struct PageInfo *pp=page_lookup(curenv->env_pgdir,(void*)va_start,&pte_store);
+		if(pp&&((*pte_store&PTE_U)!=PTE_U)) 
+			 env_destroy(curenv);
+	}
+//	int r;
+//	if(r=)
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -270,6 +281,22 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// Call the function corresponding to the 'syscallno' parameter.
 	// Return any appropriate return value.
 	// LAB 3: Your code here.
+//	asm volatile("movl %eax,%0\n\t
+//		      movl %ecx,%1\n\t" 
+	
+cprintf("kern/syscall.c: syscallno=%x\n",syscallno);	
+	if(syscallno==SYS_cputs){
+		sys_cputs((char *)a1,a2);
+		return -1;
+		
+	}
+	if(syscallno==SYS_cgetc)
+		return sys_cgetc();
+	if(syscallno==SYS_getenvid)
+		return	sys_getenvid();
+	if(syscallno==SYS_env_destroy)
+		return sys_env_destroy(a1);
+
 
 	panic("syscall not implemented");
 

@@ -116,10 +116,20 @@ envid2env(envid_t envid, struct Env **env_store, bool checkperm)
 //
 void
 env_init(void)
-{
+{       //尾插法
 	// Set up envs array
 	// LAB 3: Your code here.
-
+	size_t i;
+	env_free_list=envs;
+	struct Env *r=env_free_list;
+	for(i=1;i<NENV;i++){
+		envs[i].env_id=0;
+		envs[i].env_status=ENV_FREE;
+		r->env_link=&envs[i];
+		r=r->env_link;	
+        }
+	r=NULL;
+cprintf("sizeof(unsigned long)=%d字节\n",sizeof(unsigned long));
 	// Per-CPU part of the initialization
 	env_init_percpu();
 }
@@ -182,6 +192,23 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
+	e->env_pgdir=page2kva(p);
+//	page_insert(kern_pgdir,p,e->env_pgdir,PTE_W | PTE_U);
+	++p->pp_ref;
+	memset(e->env_pgdir,0,PGSIZE);
+	uint32_t pdeno,pteno;
+	pte_t *pte_kern,*pte_env;
+	for(pdeno=PDX(UTOP);pdeno<NPDENTRIES;pdeno++){
+		e->env_pgdir[pdeno]=PTE_ADDR(kern_pgdir[pdeno]) |PTE_W | PTE_P|PTE_U;
+
+		pte_kern=(pte_t*)KADDR(PTE_ADDR(kern_pgdir[pdeno]));
+		pte_env=(pte_t*)KADDR(PTE_ADDR(e->env_pgdir[pdeno]));
+
+		for(pteno=0;pteno<NPTENTRIES;pteno++){
+			pte_env[pteno]=pte_kern[pteno]| PTE_W | PTE_P|PTE_U;
+                }
+        }
+
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
@@ -279,6 +306,25 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+	
+	struct PageInfo *p=NULL;
+	void *va_start=ROUNDDOWN(va,PGSIZE),*va_end=ROUNDUP(va+len,PGSIZE);
+	uint32_t va_pde,pa,*va_pte;
+
+	for(;va_start<va_end;va_start+=PGSIZE){
+		if(!(p=page_alloc(1)))
+			panic("region_alloc():allocation attempt fails!\n");
+	//	cprintf("va_start=%x,page2pa(p)=%x,",va_start,page2pa(p));
+		page_insert(e->env_pgdir,p,va_start,PTE_W|PTE_U);
+		
+/*		va_pde=e->env_pgdir[PDX(va_start)];
+                va_pte=(uint32_t*)KADDR(PTE_ADDR(va_pde))+PTX(va_start);
+                pa=PTE_ADDR(*va_pte);
+                cprintf("目的:va=%x,va_pde=%x,va_pte=%x,pa=%x\n",va_start,va_pde,*va_pte,pa);
+*/
+	}
+
+
 }
 
 //
@@ -336,10 +382,49 @@ load_icode(struct Env *e, uint8_t *binary)
 
 	// LAB 3: Your code here.
 
+	struct Proghdr *ph,*eph;
+	struct Elf *new_ELF=(struct Elf*)binary;
+	if(new_ELF->e_magic!=ELF_MAGIC)
+		panic("ELF binary header's e_magic is wrong!\n");
+	
+	uint32_t va_pde,pa,*va_pte;
+
+
+
+	ph=(struct Proghdr*)(binary+new_ELF->e_phoff);
+	eph=ph+new_ELF->e_phnum;
+	for(;ph<eph;ph++){
+	   if(ph->p_type==ELF_PROG_LOAD){
+	   	region_alloc(e,(void*)ph->p_va,ph->p_memsz);
+/*		
+		va_start=(void*)ph+ph->p_offset;
+		va_pde=e->env_pgdir[PDX(va_start)];
+                va_pte=(uint32_t*)KADDR(PTE_ADDR(va_pde))+PTX(va_start);
+                pa=PTE_ADDR(*va_pte);
+		cprintf("源地址:va=%x,va_pde=%x,va_pte=%x,pa=%x\n",va_start,va_pde,*va_pte,pa);
+		
+*/		
+		if(ph->p_va==0x800020)
+			cprintf("0x800020:%x\n",*((int*)ph->p_va));
+		lcr3(PADDR(e->env_pgdir));
+	   	memmove((void*)ph->p_va,binary+ph->p_offset,ph->p_filesz);
+		memset((void*)ph->p_va+ph->p_filesz,0,ph->p_memsz-ph->p_filesz);
+                if(ph->p_va==0x800020)
+                        cprintf("0x800020:%x\n",*((int*)ph->p_va));
+		lcr3(PADDR(kern_pgdir));
+
+//		cprintf("执行memmove()结束！\n");
+	   }
+        }
+
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+	struct PageInfo *pp=page_alloc(1);
+	page_insert(e->env_pgdir,pp,(void *)USTACKTOP-PGSIZE,PTE_W|PTE_U);
+	e->env_tf.tf_eip=new_ELF->e_entry;
+
 }
 
 //
@@ -353,6 +438,15 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
+	struct Env *new_env;
+	env_alloc(&new_env,0);
+	load_icode(new_env,binary);
+cprintf("i=%d\n",new_env-envs);
+
+
+	new_env->env_type=type;
+	new_env->env_parent_id=0;
+
 }
 
 //
@@ -483,6 +577,24 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
+	
+	
+	if(curenv){
+		if(curenv->env_status==ENV_RUNNING)
+			curenv->env_status=ENV_RUNNABLE;
+		
+		curenv=e;
+		curenv->env_status=ENV_RUNNING;
+		++curenv->env_runs;
+		lcr3((uint32_t)curenv->env_pgdir);
+
+        }
+	curenv=e;
+	curenv->env_status=ENV_RUNNING;
+	curenv->env_runs++;
+	lcr3(PADDR(curenv->env_pgdir));
+//	page_remove(curenv->env_pgdir,(void*)0xf0100000);
+	env_pop_tf(&curenv->env_tf);	
 
 	panic("env_run not yet implemented");
 }

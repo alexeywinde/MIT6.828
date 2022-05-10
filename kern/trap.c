@@ -72,6 +72,26 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+	void divide_entry();  SETGATE(idt[T_DIVIDE],1,GD_KT,divide_entry,0);
+	void debug_entry();   SETGATE(idt[T_DEBUG],1,GD_KT,debug_entry,0); 
+	void nmi_entry();     SETGATE(idt[T_BRKPT],0,GD_KT,nmi_entry,0); 
+	void brkpt_entry();   SETGATE(idt[T_BRKPT],1,GD_KT,brkpt_entry,3); 
+	void oflow_entry();   SETGATE(idt[T_OFLOW],1,GD_KT,oflow_entry,0); 
+	void bound_entry();   SETGATE(idt[T_BOUND],1,GD_KT,bound_entry,0); 
+	void illop_entry();   SETGATE(idt[T_ILLOP],1,GD_KT,illop_entry,0); 
+	void device_entry();  SETGATE(idt[T_DEVICE],1,GD_KT,device_entry,0); 
+        void dblflt_entry();  SETGATE(idt[T_DBLFLT],1,GD_KT,dblflt_entry,0); 
+	void tss_entry();     SETGATE(idt[T_TSS],1,GD_KT,tss_entry,0); 
+	void segnp_entry();   SETGATE(idt[T_SEGNP],1,GD_KT,segnp_entry,0); 
+	void stack_entry();   SETGATE(idt[T_STACK],1,GD_KT,stack_entry,0); 
+	void gpflt_entry();   SETGATE(idt[T_GPFLT],1,GD_KT,gpflt_entry,0); 
+	void pgflt_entry();   SETGATE(idt[T_PGFLT],1,GD_KT,pgflt_entry,0); 
+	void fperr_entry();   SETGATE(idt[T_FPERR],1,GD_KT,fperr_entry,0); 
+	void align_entry();   SETGATE(idt[T_ALIGN],1,GD_KT,align_entry,0); 
+	void mchk_entry();    SETGATE(idt[T_MCHK],1,GD_KT,mchk_entry,0); 
+	void simderr_entry(); SETGATE(idt[T_SIMDERR],1,GD_KT,simderr_entry,0);
+	void syscall_entry(); SETGATE(idt[T_SYSCALL],0,GD_KT,syscall_entry,3); 
+
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -190,8 +210,47 @@ trap_dispatch(struct Trapframe *tf)
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
 
+	cprintf("中断号码：tf->tf_trapno=%d\n",tf->tf_trapno);
+	if((tf->tf_trapno==T_PGFLT))
+		page_fault_handler(tf);
+	if(tf->tf_trapno==T_BRKPT){
+	
+//		breakpoint();
+//		while(1)
+		monitor(tf);
+//		breakpoint();
+	}
+	if(tf->tf_trapno==T_SYSCALL){
+		  uint32_t syscallno,a1,a2,a3,a4,a5;
+//		breakpoint();
+//		monitor(tf);
+
+/*		  asm volatile(
+			     "\tmovl %%eax,%0\n"
+			     "\tmovl %%edx,%1\n"
+			     "\tmovl %%ecx,%2\n"
+			     "\tmovl %%ebx,%3\n"
+			     "\tmovl %%edi,%4\n"
+			     "\tmovl %%esi,%5\n"
+			   
+			     :"=a"(syscallno),"=d"(a1),"=c"(a2),"=b"(a3),"=D"(a4),"=S"(a5)
+			     :
+			     :"cc", "memory");
+*/
+		syscallno=tf->tf_regs.reg_eax;
+		a1=tf->tf_regs.reg_edx;
+		a2=tf->tf_regs.reg_ecx;
+		a3=tf->tf_regs.reg_ebx;
+		a4=tf->tf_regs.reg_edi;
+		a5=tf->tf_regs.reg_esi;
+
+		cprintf("kern/trap.c: syscallno=%x,a1=%x,a2=%x,a3=%x,a4=%x,a5=%x\n",syscallno,a1,a2,a3,a4,a5);	
+		tf->tf_regs.reg_eax=syscall(syscallno,a1,a2,a3,a4,a5);
+		env_pop_tf(tf);
+}
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
+//	cprintf("打印:trapno=0x%03x,tf->tf_cs=0x%02x\n",tf->tf_trapno,tf->tf_cs);
 	if (tf->tf_cs == GD_KT)
 		panic("unhandled trap in kernel");
 	else {
@@ -269,8 +328,22 @@ page_fault_handler(struct Trapframe *tf)
 	fault_va = rcr2();
 
 	// Handle kernel-mode page faults.
-
+	cprintf("打印：fault_va=%08x,tf->tf_cs dpl:0x%02x\n",fault_va,tf->tf_cs&3);
 	// LAB 3: Your code here.
+	if((tf->tf_cs&3)==0){
+/*		struct PageInfo* pp=page_alloc(1);
+		page_insert(kern_pgdir,pp,(void*)fault_va,PTE_W);	
+		cprintf("[%08x] user fault va %08x ip %08x\n", 
+				curenv->env_id, fault_va, tf->tf_eip);   	
+		print_trapframe(tf); 
+		env_pop_tf(tf);*/
+		cprintf("[%08x] user fault va %08x ip %08x\n",
+				 curenv->env_id, fault_va, tf->tf_eip); 
+		 print_trapframe(tf);
+		 env_destroy(curenv);
+ 
+
+	}
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
