@@ -21,14 +21,14 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
-	const void *va_start=(void*)s,*va_end=(void*)s+len;
-	va_start=ROUNDDOWN(s,PGSIZE),va_end=ROUNDUP(s+len,PGSIZE);
+	uint32_t va_start=(uint32_t)s,va_end=(uint32_t)s+len;
+	va_start=ROUNDDOWN(va_start,PGSIZE),va_end=ROUNDUP(va_end,PGSIZE);
 	pte_t *pte_store;
 	for(;va_start<va_end;va_start+=PGSIZE){
 		if((curenv->env_pgdir[PDX(va_start)]&PTE_U)!=PTE_U) env_destroy(curenv);
 		struct PageInfo *pp=page_lookup(curenv->env_pgdir,(void*)va_start,&pte_store);
-		if(!pp) env_destroy(curenv);
-		if(((*pte_store)&PTE_U)!=PTE_U) env_destroy(curenv);
+		if(pp&&((*pte_store&PTE_U)!=PTE_U)) 
+			 env_destroy(curenv);
 	}
 //	int r;
 //	if(r=)
@@ -83,9 +83,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 //	asm volatile("movl %eax,%0\n\t
 //		      movl %ecx,%1\n\t" 
 	
-	
+cprintf("kern/syscall.c: syscallno=%x\n",syscallno);	
 	if(syscallno==SYS_cputs){
 		sys_cputs((char *)a1,a2);
+		return -1;
 		
 	}
 	if(syscallno==SYS_cgetc)

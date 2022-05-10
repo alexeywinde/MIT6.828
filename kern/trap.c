@@ -176,7 +176,10 @@ trap_dispatch(struct Trapframe *tf)
 	}
 	if(tf->tf_trapno==T_SYSCALL){
 		  uint32_t syscallno,a1,a2,a3,a4,a5;
-		  asm volatile(
+//		breakpoint();
+//		monitor(tf);
+
+/*		  asm volatile(
 			     "\tmovl %%eax,%0\n"
 			     "\tmovl %%edx,%1\n"
 			     "\tmovl %%ecx,%2\n"
@@ -184,10 +187,20 @@ trap_dispatch(struct Trapframe *tf)
 			     "\tmovl %%edi,%4\n"
 			     "\tmovl %%esi,%5\n"
 			   
-			     :"=r"(syscallno),"=r"(a1),"=r"(a2),"=r"(a3),"=r"(a4),"=r"(a5)
+			     :"=a"(syscallno),"=d"(a1),"=c"(a2),"=b"(a3),"=D"(a4),"=S"(a5)
 			     :
-			     :"cc", "memory");	
-		syscall(syscallno,a1,a2,a3,a4,a5);
+			     :"cc", "memory");
+*/
+		syscallno=tf->tf_regs.reg_eax;
+		a1=tf->tf_regs.reg_edx;
+		a2=tf->tf_regs.reg_ecx;
+		a3=tf->tf_regs.reg_ebx;
+		a4=tf->tf_regs.reg_edi;
+		a5=tf->tf_regs.reg_esi;
+
+		cprintf("kern/trap.c: syscallno=%x,a1=%x,a2=%x,a3=%x,a4=%x,a5=%x\n",syscallno,a1,a2,a3,a4,a5);	
+		tf->tf_regs.reg_eax=syscall(syscallno,a1,a2,a3,a4,a5);
+		env_pop_tf(tf);
 }
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
