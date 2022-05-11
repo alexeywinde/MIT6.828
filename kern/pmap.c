@@ -616,6 +616,32 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+	pte_t *pte_store;
+	uintptr_t va_start=ROUNDDOWN((uint32_t)va,PGSIZE);
+	uintptr_t r=(uintptr_t)va-va_start;
+	uintptr_t va_end=va_start+ROUNDUP(len,PGSIZE);
+	struct PageInfo *pp;
+	
+	if(va_end>=ULIM)
+		return -E_FAULT;
+
+	for(;va_start<va_end;va_start+=PGSIZE){
+
+		user_mem_check_addr=va_start+r;
+		
+		if((env->env_pgdir[PDX(va_start)]&perm)!=perm)
+			return -E_FAULT;
+
+		pp=page_lookup(env->env_pgdir,(void*)va,&pte_store);
+
+		if(!pp)//create==0调用了pgdir_walk(),可能不存在页表
+			return 0;//页表不存在,不属于权限不足,视为通过权限检查
+//			return -E_FAULT;
+			
+
+		if((*pte_store&perm)!=perm)
+			return -E_FAULT;	
+	}
 
 	return 0;
 }

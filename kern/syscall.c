@@ -21,7 +21,8 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
-	uint32_t va_start=(uint32_t)s,va_end=(uint32_t)s+len;
+
+/*	uint32_t va_start=(uint32_t)s,va_end=(uint32_t)s+len;
 	va_start=ROUNDDOWN(va_start,PGSIZE),va_end=ROUNDUP(va_end,PGSIZE);
 	pte_t *pte_store;
 	for(;va_start<va_end;va_start+=PGSIZE){
@@ -30,9 +31,11 @@ sys_cputs(const char *s, size_t len)
 		if(pp&&((*pte_store&PTE_U)!=PTE_U)) 
 			 env_destroy(curenv);
 	}
-//	int r;
-//	if(r=)
+*/
 
+        //LAB 3,Exercise 9:
+	user_mem_assert(curenv,s,len,PTE_U);
+	
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
 }
