@@ -635,8 +635,8 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 		pp=page_lookup(env->env_pgdir,(void*)va,&pte_store);
 
 		if(!pp)//create==0调用了pgdir_walk(),可能不存在页表
-			return 0;//页表不存在,不属于权限不足,视为通过权限检查
-//			return -E_FAULT;
+//			return 0;//页表不存在,不属于权限不足,视为通过权限检查
+			return -E_FAULT;
 			
 
 		if((*pte_store&perm)!=perm)
