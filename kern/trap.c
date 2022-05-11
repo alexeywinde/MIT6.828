@@ -337,10 +337,9 @@ page_fault_handler(struct Trapframe *tf)
 				curenv->env_id, fault_va, tf->tf_eip);   	
 		print_trapframe(tf); 
 		env_pop_tf(tf);*/
-		cprintf("[%08x] user fault va %08x ip %08x\n",
+		
+		panic("[%08x] kernel fault va %08x ip %08x\n",
 				 curenv->env_id, fault_va, tf->tf_eip); 
-		 print_trapframe(tf);
-		 env_destroy(curenv);
  
 
 	}

@@ -198,16 +198,29 @@ env_setup_vm(struct Env *e)
 	memset(e->env_pgdir,0,PGSIZE);
 	uint32_t pdeno,pteno;
 	pte_t *pte_kern,*pte_env;
-	for(pdeno=PDX(UTOP);pdeno<NPDENTRIES;pdeno++){
-		e->env_pgdir[pdeno]=PTE_ADDR(kern_pgdir[pdeno]) |PTE_W | PTE_P|PTE_U;
+
+	for(pdeno=PDX(UTOP);pdeno<PDX(ULIM);pdeno++){
+		e->env_pgdir[pdeno]=PTE_ADDR(kern_pgdir[pdeno]) | PTE_U | PTE_P;
 
 		pte_kern=(pte_t*)KADDR(PTE_ADDR(kern_pgdir[pdeno]));
 		pte_env=(pte_t*)KADDR(PTE_ADDR(e->env_pgdir[pdeno]));
 
 		for(pteno=0;pteno<NPTENTRIES;pteno++){
-			pte_env[pteno]=pte_kern[pteno]| PTE_W | PTE_P|PTE_U;
+			pte_env[pteno]=pte_kern[pteno]| PTE_U | PTE_P;
                 }
         }
+	//UTOP-ULIM,和>=ULIM的权限不同，需要复制两次
+	for(pdeno=PDX(ULIM);pdeno<NPDENTRIES;pdeno++){
+                e->env_pgdir[pdeno]=PTE_ADDR(kern_pgdir[pdeno]) | PTE_W | PTE_P;
+
+                pte_kern=(pte_t*)KADDR(PTE_ADDR(kern_pgdir[pdeno]));
+                pte_env=(pte_t*)KADDR(PTE_ADDR(e->env_pgdir[pdeno]));
+
+                for(pteno=0;pteno<NPTENTRIES;pteno++){
+                        pte_env[pteno]=pte_kern[pteno]| PTE_W | PTE_P;
+                }
+        }
+
 
 
 	// UVPT maps the env's own page table read-only.
