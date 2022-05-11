@@ -142,6 +142,25 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 		// Make sure this memory is valid.
 		// Return -1 if it is not.  Hint: Call user_mem_check.
 		// LAB 3: Your code here.
+/*
+	uintptr_t mem_check_addr;
+	if((mem_check_addr=user_mem_check(curenv,usd->stabs,
+					usd->stab_end - usd->stabs ,PTE_U))<0){
+                cprintf("[%08x] user_mem_check assertion failure for "
+                        "va %08x\n", curenv->env_id, mem_check_addr);
+		return -1;
+                //env_destroy(curenv);       // may not return
+	}
+	if((mem_check_addr=user_mem_check(&envs[0],usd->stabstr,
+				usd->stabstr_end - usd->stabstr ,PTE_U))<0){
+		cprintf("[%08x] user_mem_check assertion failure for "
+                        "va %08x\n", curenv->env_id, mem_check_addr);
+                return -1;
+               // env_destroy(curenv);       // may not return
+        }   
+*/
+		user_mem_assert(curenv, usd->stabs,usd->stab_end - usd->stabs , PTE_U|PTE_P);
+		user_mem_assert(curenv, usd->stabstr,usd->stabstr_end - usd->stabstr , PTE_U|PTE_P);
 
 		stabs = usd->stabs;
 		stab_end = usd->stab_end;

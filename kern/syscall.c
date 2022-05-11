@@ -35,7 +35,7 @@ sys_cputs(const char *s, size_t len)
 */
 
         //LAB 3,Exercise 9:
-	user_mem_assert(curenv,s,len,PTE_U);
+	user_mem_assert(curenv,s,len,PTE_U|PTE_P);
 	
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
