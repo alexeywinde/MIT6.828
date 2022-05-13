@@ -32,7 +32,12 @@ i386_init(void)
 
 	// Lab 3 user environment initialization functions
 	env_init();
+
+	lock_kernel();//Exercise 5 of LAB 4: acquire lock
+
 	trap_init();
+
+//	unlock_kernel();//Exercise 5 of LAB 4:unlock
 
 	// Lab 4 multiprocessor initialization functions
 	mp_init();
@@ -102,6 +107,10 @@ mp_main(void)
 	lapic_init();
 	env_init_percpu();
 	trap_init_percpu();
+	
+	lock_kernel();//Exercise 5 of LAB 4: acquire lock
+
+	
 	xchg(&thiscpu->cpu_status, CPU_STARTED); // tell boot_aps() we're up
 
 	// Now that we have finished some basic setup, call sched_yield()
@@ -110,8 +119,11 @@ mp_main(void)
 	//
 	// Your code here:
 
+	lock_kernel();
+	sched_yield();
+
 	// Remove this after you finish Exercise 6
-	for (;;);
+//	for (;;);
 }
 
 /*

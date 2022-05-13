@@ -607,6 +607,9 @@ env_run(struct Env *e)
 	curenv->env_runs++;
 	lcr3(PADDR(curenv->env_pgdir));
 //	page_remove(curenv->env_pgdir,(void*)0xf0100000);
+	
+	unlock_kernel();//Exercise 5 of LAB 4:release the lock
+	
 	env_pop_tf(&curenv->env_tf);	
 
 	panic("env_run not yet implemented");

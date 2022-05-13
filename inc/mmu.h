@@ -168,11 +168,15 @@ struct Segdesc {
 #define SEG_NULL	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 // Segment that is loadable but faults when used
 #define SEG_FAULT	{ 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0 }
-// Normal segment
+
+
+// Normal segment G=1,粒度4KB
 #define SEG(type, base, lim, dpl) 					\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
     type, 1, dpl, 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,		\
     (unsigned) (base) >> 24 }
+
+//                G=0，粒度1B
 #define SEG16(type, base, lim, dpl) (struct Segdesc)			\
 { (lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,		\
     type, 1, dpl, 1, (unsigned) (lim) >> 16, 0, 0, 1, 0,		\

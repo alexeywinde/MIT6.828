@@ -305,8 +305,8 @@ mem_init_mp(void)
 	size_t i=0;
 	for(;i<NCPU;i++){
 		boot_map_region(kern_pgdir,
-		KSTACKTOP-i*(KSTKSIZE+KSTKGAP)+KSTKGAP,
-		KSTKSIZE+KSTKGAP,PADDR(percpu_kstacks[i]),PTE_W);
+		KSTACKTOP-(i+1)*(KSTKSIZE+KSTKGAP)+KSTKGAP,
+		KSTKSIZE,PADDR(percpu_kstacks[i]),PTE_W);
         }
 
 }
